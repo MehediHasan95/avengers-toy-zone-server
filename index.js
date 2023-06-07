@@ -26,6 +26,17 @@ async function run() {
     await client.db("admin").command({ ping: 1 });
     console.log("You successfully connected to MongoDB!");
     app.get("/", (req, res) => res.send("AvengersToyZone Server is Running"));
+
+    const toyCollection = client
+      .db("avengersToyZone")
+      .collection("toyCollection");
+
+    // POST TOY METHOD
+    app.post("/alltoys", async (req, res) => {
+      const data = req.body;
+      const result = await toyCollection.insertOne(data);
+      res.send(result);
+    });
   } finally {
     app.listen(port, () =>
       console.log("AvengersToyZone Server is Running Port: ", port)
