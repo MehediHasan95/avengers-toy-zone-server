@@ -37,6 +37,13 @@ async function run() {
       res.send(results);
     });
 
+    app.get("/alltoys/:sub", async (req, res) => {
+      const results = await toyCollection
+        .find({ subCategory: { $eq: req?.params?.sub } })
+        .toArray();
+      res.send(results);
+    });
+
     // GET SPECIFIC DATA
     app.get("/toy/:id", async (req, res) => {
       const id = req.params.id;
