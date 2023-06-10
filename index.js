@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -20,16 +21,44 @@ const client = new MongoClient(
   }
 );
 
+const verifyJWT = (req, res, next) => {
+  const token = req.headers.authorization;
+  if (token) {
+    jwt.verify(token, process.env.ACCESS_SECRET_TOKEN, (err, decoded) => {
+      if (err) {
+        return res
+          .status(401)
+          .send({ err: true, message: "Unauthorized access token" });
+      } else {
+        req.decoded = decoded;
+        next();
+      }
+    });
+  } else {
+    return res
+      .status(401)
+      .send({ err: true, message: "Unauthorized access token" });
+  }
+};
+
 async function run() {
   try {
     await client.connect();
     await client.db("admin").command({ ping: 1 });
-    console.log("You successfully connected to MongoDB!");
     app.get("/", (req, res) => res.send("AvengersToyZone Server is Running"));
 
     const toyCollection = client
       .db("avengersToyZone")
       .collection("toysCollection");
+
+    // JWT POST METHOD
+    app.post("/jwt", (req, res) => {
+      const data = req.body;
+      const token = jwt.sign(data, process.env.ACCESS_SECRET_TOKEN, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
 
     // GET METHOD
     app.get("/alltoys", async (req, res) => {
@@ -53,11 +82,15 @@ async function run() {
     });
 
     // GET MY TOYS
-    app.get("/mytoys", async (req, res) => {
-      const results = await toyCollection
-        .find({ uid: { $eq: req?.query?.uid } })
-        .toArray();
-      res.send(results);
+    app.get("/mytoys", verifyJWT, async (req, res) => {
+      if (req?.query?.uid === req?.decoded?.uid) {
+        const results = await toyCollection
+          .find({ uid: { $eq: req?.query?.uid } })
+          .toArray();
+        res.send(results);
+      } else {
+        res.status(403).send({ err: true, message: "Error Forbidden" });
+      }
     });
 
     app.get("/mytoys/:id", async (req, res) => {
