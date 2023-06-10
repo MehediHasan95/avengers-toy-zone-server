@@ -64,6 +64,7 @@ async function run() {
     app.get("/alltoys", async (req, res) => {
       const results = await toyCollection.find({}).limit(20).toArray();
       res.send(results);
+      console.log(results.length);
     });
 
     app.get("/alltoys/:sub", async (req, res) => {
@@ -129,6 +130,15 @@ async function run() {
       const data = req.body;
       const result = await toyCollection.insertOne(data);
       res.send(result);
+    });
+
+    //
+    app.get("/sort", async (req, res) => {
+      const results = await toyCollection
+        .find({ uid: { $eq: req?.query?.uid } })
+        .sort({ price: parseInt(req?.query?.sort) })
+        .toArray();
+      res.send(results);
     });
   } finally {
     app.listen(port, () =>
