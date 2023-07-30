@@ -62,9 +62,28 @@ async function run() {
 
     // GET METHOD
     app.get("/alltoys", async (req, res) => {
-      const results = await toyCollection.find({}).limit(20).toArray();
+      const page = parseInt(req.query.page) || 0;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = page * limit;
+      const results = await toyCollection
+        .find({})
+        .skip(skip)
+        .limit(limit)
+        .toArray();
       res.send(results);
-      console.log(results.length);
+    });
+
+    // GET TOTAL NUMBERS OF PRODUCTS
+    app.get("/count", async (req, res) => {
+      const count = await toyCollection.estimatedDocumentCount();
+      res.send({ count });
+    });
+
+    // POST METHOD
+    app.post("/alltoys", async (req, res) => {
+      const data = req.body;
+      const result = await toyCollection.insertOne(data);
+      res.send(result);
     });
 
     app.get("/alltoys/:sub", async (req, res) => {
@@ -122,13 +141,6 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await toyCollection.deleteOne(query);
-      res.send(result);
-    });
-
-    // POST METHOD
-    app.post("/alltoys", async (req, res) => {
-      const data = req.body;
-      const result = await toyCollection.insertOne(data);
       res.send(result);
     });
 
